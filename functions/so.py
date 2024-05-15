@@ -1,0 +1,123 @@
+import numpy as np
+import pyvista as pv
+from functions import misc
+from matplotlib import pyplot as plt
+
+from scipy.linalg import expm
+from scipy.spatial.transform import Rotation
+from tqdm import tqdm
+
+
+def get_bases(dim, i):
+    mat = np.zeros([dim, dim])
+    row = dim - 2
+    col = dim - 1
+    parity = (-1)**i
+    while (i-1) > 0:
+        if col == row + 1:
+            row -= 1
+            col = dim - 1
+        else:
+            col -= 1
+        i -= 1
+
+    mat[row, col] = parity*1
+    mat[col, row] = -parity*1
+
+    return mat
+
+# --- Turns out random_angle should have a non-uniform distribution,
+# --- so this approach does not work!
+# def random_skew_symmetric_matrix(dim = 3):
+#     random_angle = 2*np.pi * np.random.random()
+#     u = random_unit_vector(dimension(dim))*random_angle
+#     return hat(u)
+
+
+def dimension(dim):
+    return int(dim*(dim-1)/2)
+
+
+def vee(mat):
+    dim = mat.shape[0]
+    vec = np.zeros([dimension(dim), 1])
+    row = dim - 2
+    col = dim - 1
+    for i in range(dimension(dim)):
+        vec[i, 0] = mat[row, col]*((-1)**i)
+        if col == row + 1:
+            row -= 1
+            col = dim - 1
+        else:
+            col -= 1
+    return vec
+
+
+def hat(vec):
+    dim = vec.shape[0]
+    mat = np.zeros([dim, dim])
+    for i in range(dim):
+        mat += vec[i]*get_bases(dim, i+1)
+    return mat
+
+def wrappedGaussian(mean = None, cov = None, mean_skew = None, size = 1):
+    if mean is None:
+        mean = expm(mean_skew)
+    
+    x_list = np.random.multivariate_normal(
+        np.zeros(dimension(mean.shape[0])), cov, size = size)
+    
+    return [mean @ expm(hat(x.T)) for x in x_list]
+
+
+def uniformSO3(size = 1):
+    return_list = []
+    for i in range(size):
+        vec = misc.random_unit_vector(4)
+        return_list.append(Rotation.from_quat(vec).as_matrix())
+    return return_list
+
+
+def testSO3(size = 1):
+    return_list = []
+    for _ in range(size):
+        angles = [np.random.normal(60, 2), np.random.uniform(-90, 90), np.random.normal(-45, 2)]
+        return_list.append(Rotation.from_euler('xyx', angles, degrees=True).as_matrix())
+    
+    return return_list
+
+# ---------------------------------
+# ----- The following is for SO(3):
+# ---------------------------------
+
+def sphereVisualization(samples , resolution = 30):
+    sphere_samples = [sample[:, 0] for sample in samples]
+    sphere = pv.Sphere(radius=1.0, theta_resolution = resolution, phi_resolution = resolution)
+    sphere_values = pv.Sphere(radius=1.0, theta_resolution = resolution, phi_resolution = resolution)
+    
+    kdes = []
+    kde_max = 0.0
+    for i in tqdm(range(sphere_values.n_points), desc = "Calculating KDE"):
+        kdes.append(kde(sphere_samples, sphere_values.points[i]))
+        if kdes[-1] > kde_max:
+            kde_max = kdes[-1]
+
+    for i in range(sphere_values.n_points):
+        sphere_values.points[i] = (0.99999 + kdes[i]*0.75/kde_max)*sphere_values.point_normals[i]
+
+    plotter = pv.Plotter()
+    plotter.add_mesh(sphere, color = 'w')
+    plotter.add_mesh(sphere_values, color = 'b', opacity = 0.3)
+    
+    plotter.add_axes()
+    plotter.show()
+
+def kde(samples, point):
+    val = 0.0
+    sigma = 0.05
+    for sample in samples:
+        val += np.exp(
+            -np.inner(sample - point, sample - point)/(2*sigma**2)
+            )/sigma**2
+
+    return val/len(samples)    
