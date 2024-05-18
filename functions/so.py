@@ -3,12 +3,18 @@ import pyvista as pv
 from functions import misc
 from matplotlib import pyplot as plt
 
+from pandas import DataFrame
+import seaborn as sns
+
 from scipy.linalg import expm
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 
 
-def get_bases(dim, i):
+def get_bases(dim, i = None):
+    if i is None:
+        return [get_bases(dim, i) for i in range(1, dimension(dim)+1)]
+    
     mat = np.zeros([dim, dim])
     row = dim - 2
     col = dim - 1
@@ -81,7 +87,7 @@ def uniformSO3(size = 1):
 def testSO3(size = 1):
     return_list = []
     for _ in range(size):
-        angles = [np.random.normal(60, 2), np.random.uniform(-90, 90), np.random.normal(-45, 2)]
+        angles = [np.random.normal(30, 5.0), np.random.uniform(-90, 90), np.random.normal(-30, 5.0)]
         return_list.append(Rotation.from_euler('xyx', angles, degrees=True).as_matrix())
     
     return return_list
@@ -112,9 +118,25 @@ def sphereVisualization(samples , resolution = 30):
     plotter.add_axes()
     plotter.show()
 
+def sliceVisualization(samples):
+    sphere_samples = [sample[:, 0] for sample in samples]
+    data = {"theta": [], "phi": []}
+    for sample in sphere_samples:
+        _, theta, phi = misc.polar_from_cart(*sample)
+        data['theta'].append(theta)
+        data['phi'].append(phi)
+
+    sns.kdeplot(data = DataFrame(data), x = "theta", y = "phi", fill = True, levels = 100)
+    plt.xlim(-np.pi, np.pi)
+    plt.ylim(0, np.pi)
+    plt.xlabel(r"$\theta$")
+    plt.ylabel(r"$\phi$")
+    plt.show()
+    
+
 def kde(samples, point):
     val = 0.0
-    sigma = 0.05
+    sigma = 0.1
     for sample in samples:
         val += np.exp(
             -np.inner(sample - point, sample - point)/(2*sigma**2)
