@@ -39,7 +39,6 @@ def get_bases(dim, i = None):
 #     u = random_unit_vector(dimension(dim))*random_angle
 #     return hat(u)
 
-
 def dimension(dim):
     return int(dim*(dim-1)/2)
 
@@ -118,7 +117,7 @@ def sphereVisualization(samples , resolution = 30):
     plotter.add_axes()
     plotter.show()
 
-def sliceVisualization(samples):
+def sliceVisualization(samples, show = True):
     sphere_samples = [sample[:, 0] for sample in samples]
     data = {"theta": [], "phi": []}
     for sample in sphere_samples:
@@ -131,7 +130,9 @@ def sliceVisualization(samples):
     plt.ylim(0, np.pi)
     plt.xlabel(r"$\theta$")
     plt.ylabel(r"$\phi$")
-    plt.show()
+    
+    if show:
+        plt.show()
     
 
 def kde(samples, point):
