@@ -29,7 +29,7 @@ def get_device():
     if torch.backends.mps.is_available():
         return torch.device("mps")
     
-    elif torch.backends.cude.is_available():
+    elif torch.backends.cuda.is_available():
         return torch.device("cuda")  # Not tested
 
     else:
