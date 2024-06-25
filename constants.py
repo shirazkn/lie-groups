@@ -1,4 +1,4 @@
-from torch import float32
+from torch import float32, float64
 
 directory = "data"
 summary_directory = f"{directory}/runs"
@@ -7,12 +7,12 @@ samples_filename = f"{directory}/samples.pkl"
 diffused_samples_filename = f"{directory}/diffused_samples.pkl"
 model_filename = f"{directory}/scoreNetwork.pkl"
 
-n_samples = 200
-n_training_dataset = 20000
-feedforward_signature = (10, 128, 3, 2)  # Last number is the depth
-datatype = float32  # MPS (Apple Silicon equivalent of CUDA) doesn't support float63
+n_samples = 10000
+n_training_dataset = 10000
+feedforward_signature = (10, 256, 3, 2)  # Last number is the depth
+datatype = float64  # Note: MPS (Apple's equivalent of CUDA) doesn't support float64
 
 simulation = {
-    "final_time": 4.0,
+    "final_time": 5.0,
     "sde_dt": 0.01
 }

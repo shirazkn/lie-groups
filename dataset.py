@@ -31,7 +31,7 @@ if __name__ == "__main__":
     pickler.ask_delete(constants.diffused_samples_filename)
     
     num_repetitions = int(constants.n_training_dataset / constants.n_samples)
-    print(f"Generating {constants.n_samples} X {num_repetitions} ~ {constants.n_training_dataset} training samples... ")
+    print(f"Generating {constants.n_samples} X {num_repetitions} = {constants.n_training_dataset} diffused samples... ")
 
     T = constants.simulation["final_time"]
     sde_solver = sde.SDE(bases=so.get_bases(3), dt=constants.simulation["sde_dt"])

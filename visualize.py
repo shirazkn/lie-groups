@@ -5,8 +5,8 @@ import torch
 import numpy as np
 from matplotlib import pyplot as plt
 
-PLOT_DISTRIBUTIONS = False  # Otherwise, plot the vector field of the score network
-
+PLOT_DISTRIBUTIONS = True  # Otherwise, plot the vector field of the score network
+SHOW_SCATTERPLOT = True
 
 # TODO: Fix the visualization
 # Plot sample diffusions of the score network
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         samples = pickler.read_all(constants.samples_filename)
 
         plt.figure("Target pdf")
-        so.sliceVisualization(samples, show=False)
+        so.sliceVisualization(samples, show=False, scatter=SHOW_SCATTERPLOT)
 
         training_dataset = pickler.read_all(constants.diffused_samples_filename)
         diffused_samples = []
@@ -59,10 +59,10 @@ if __name__ == "__main__":
             if t > large_time:
                 diffused_samples.append(g)
         plt.figure(f"{len(diffused_samples)} Samples with t > {large_time}")
-        so.sliceVisualization(diffused_samples, show=False)
+        so.sliceVisualization(diffused_samples, show=False, scatter=SHOW_SCATTERPLOT)
 
         plt.figure("Uniform SO(3) samples")
-        so.sliceVisualization(so.uniformSO3(len(diffused_samples)), show=False)
+        so.sliceVisualization(so.uniformSO3(len(diffused_samples)), show=False, scatter=SHOW_SCATTERPLOT)
         plt.show()
 
     # ---- visualizes the vector field of the score network ----    

@@ -6,11 +6,17 @@ from torch.utils.tensorboard import SummaryWriter
 from functions import pickler, neural, so, sde, misc
 import constants
 
-NUM_EPOCHS = 200
+NUM_EPOCHS = 4000
 DEBUGGING = False
-LOAD_MODEL = True
+LOAD_MODEL = False
 LOSS_TYPES = ["ISM", "ISM_Sliced"]
 LOSS_TYPE = "ISM"
+
+params = {
+    "lr": 1e-3,
+    "decay": 1e-4,
+    "lr_scheduler": 1e-3
+}
 
 device =  neural.get_device()
 dtype = constants.datatype
@@ -19,7 +25,7 @@ bases = torch.tensor(np.array(so.get_bases(3)),
 
 
 def input_from_tuple(g, t):
-    return np.concatenate([g.flatten(), np.array([0.1*t])])
+    return np.concatenate([g.flatten(), np.array([100*t])])
 
 
 def differentials_from_matrices(matrices):
@@ -65,7 +71,10 @@ def ism_loss(outputs, inputs, differentials):
     divergence_term = torch.tensor(0.0, dtype=dtype, device=device)
     for i in range(3):
         component = outputs[:,i].sum()
+        #  [[0.3, 0.5, 0.1], [0.32, 0.5, 0.11], [0.2, ... ], ...]
+        # component_i = 0.3 + 0.32 + 0.2 + ... = 100.00
         gradients = torch.autograd.grad(component, inputs, create_graph=True)[0][:,:9]
+        # gradients_i = [0.01, 0.04, 0.008, ...]
         divergence_term = divergence_term + misc.inner_sum(gradients, 
                                                            differentials[:,:,i].squeeze())
 
@@ -109,9 +118,9 @@ if __name__ == "__main__":
     inputs, differentials = pre_processor(training_samples, device)
 
     scoreNetwork.train()
-    optimizer = torch.optim.Adam(scoreNetwork.parameters(), lr=1e-2, weight_decay = 0)
+    optimizer = torch.optim.Adam(scoreNetwork.parameters(), lr=params["lr"], weight_decay = params["decay"])
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 
-                                                       gamma=(1-1e-4))
+                                                       gamma=(1-params["lr_scheduler"]))
 
     if LOSS_TYPE == "ISM":
         loss_fn = ism_loss
@@ -122,7 +131,6 @@ if __name__ == "__main__":
     losses = {"total": [], "norm": [], "divergence": []}
     learning_rates = []
     for epoch in tqdm(range(1, NUM_EPOCHS+1), desc="Training"):
-        # TODO: Stop requiring gradients w.r.t. all variables
         inputs.requires_grad = True
         ouputs = scoreNetwork(inputs)
         loss_term_1, loss_term_2 = loss_fn(ouputs, inputs, differentials)
@@ -137,6 +145,9 @@ if __name__ == "__main__":
         losses["divergence"].append(loss_term_2.detach().cpu().numpy())
         learning_rates.append(scheduler.get_last_lr()[-1])
         
+        if losses["divergence"][-1] < -3.0:
+            import pdb; pdb.set_trace()
+            
         optimizer.zero_grad()
         loss.backward()
         # torch.nn.utils.clip_grad_norm_(scoreNetwork.parameters(), 10.0)

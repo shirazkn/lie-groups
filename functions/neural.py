@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from constants import datatype
 
 
 class Feedforward(nn.Module):
@@ -27,7 +28,7 @@ class Feedforward(nn.Module):
 
 def get_device():
     if torch.backends.mps.is_available():
-        return torch.device("mps")
+        return torch.device("mps") if datatype==torch.float32 else "cpu"
     
     elif torch.backends.cuda.is_available():
         return torch.device("cuda")  # Not tested

@@ -1,5 +1,5 @@
 import pickle
-import os, shutil
+import os, shutil, sys
 
 
 def add_item(path, item):
@@ -45,6 +45,7 @@ def ask_delete(path, description = None):
 
     elif response.lower()[0] == "n": 
         print("Exiting.") 
+        sys.exit()
 
     else: 
         print("Please enter 'yes' or 'no'.\n")
