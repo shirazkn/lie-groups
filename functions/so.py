@@ -117,7 +117,8 @@ def sphereVisualization(samples , resolution = 30):
     plotter.add_axes()
     plotter.show()
 
-def sliceVisualization(samples, show = True, scatter=False):
+def sliceVisualization(samples, show = True, scatter=False, 
+                       color="blue", label = None, alpha=1.0):
     sphere_samples = [sample[:, 0] for sample in samples]
     data = {"theta": [], "phi": []}
     for sample in sphere_samples:
@@ -126,9 +127,11 @@ def sliceVisualization(samples, show = True, scatter=False):
         data['phi'].append(phi)
 
     if scatter:
-        sns.scatterplot(data = DataFrame(data), x = "theta", y = "phi", s = 3.0, alpha = 0.8, color = 'b')
+        sns.scatterplot(data = DataFrame(data), x = "theta", y = "phi", s = 3.5, label = label, color = color, alpha=alpha)
     else:
-        sns.kdeplot(data = DataFrame(data), x = "theta", y = "phi", fill = True, levels = 100)
+        sns.kdeplot(data = DataFrame(data), x = "theta", y = "phi", fill = True, levels = 100, alpha=alpha)
+        if label or color:
+            print("Label and color are only implemented for scatter plots.")
     plt.xlim(-np.pi, np.pi)
     plt.ylim(0, np.pi)
     plt.xlabel(r"$\theta$")

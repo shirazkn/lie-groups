@@ -14,11 +14,6 @@ def random_unit_vector(dim):
     return x/np.linalg.norm(x)
 
 
-def column(vector):
-    """Returns column vector (np.array) from np.array or list"""
-    return np.array(vector, dtype=float).reshape((len(vector), 1))
-
-
 def polar_from_cart(x, y, z):
     r = math.hypot(x, y, z)
     theta = math.atan2(y, x)

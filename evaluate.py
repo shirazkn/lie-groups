@@ -1,11 +1,13 @@
-import numpy as np
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 import torch
 
 from functions import neural, sde, so, pickler
 import constants
 
-n_samples = 300
+n_samples = 100
+SHOW_SCATTERPLOT = False
+
 
 if __name__ == "__main__":
     scoreNetwork = neural.Feedforward(*constants.feedforward_signature)
@@ -22,6 +24,11 @@ if __name__ == "__main__":
         final_value = reverseSDE.flow_T(initial_value)
         final_values.append(final_value)
     
-    so.sliceVisualization(so.testSO3(size = n_samples), scatter=True)
-    so.sliceVisualization(final_values, scatter=True)
+    plt.figure("Target pdf vs. Sampled pdf")
+    so.sliceVisualization(so.testSO3(size = n_samples), 
+                          scatter=SHOW_SCATTERPLOT, label="Dataset", show=False)
+    so.sliceVisualization(final_values, scatter=SHOW_SCATTERPLOT, show=False,
+                          label="Reversed Samples", color="red", alpha=0.5)
+    plt.legend()
+    plt.show()
     # so.sphereVisualization(final_values, resolution=60)

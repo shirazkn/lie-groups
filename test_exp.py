@@ -20,11 +20,11 @@ class Function(nn.Module):
     def __init__(self):
         super(Function, self).__init__()
         self.net = nn.Sequential(
-            nn.Linear(1, 128),
+            nn.Linear(1, 64),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(128, 1)
+            nn.Linear(64, 1)
         )
 
     def forward(self, x):
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     device = neural.get_device()
     model = Function().to(device)
     model.train()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9999)
     
     n_points = 100    

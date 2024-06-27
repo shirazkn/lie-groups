@@ -41,8 +41,18 @@ class ScoreSDE(SDE):
 
     def get_velocity(self, g, t):
         input_vector = learning.input_from_tuple(g, self.final_time - t)
-        input_tensor = torch.tensor(input_vector, dtype=torch.float32)
+        input_tensor = torch.tensor(input_vector, dtype=constants.datatype)
         return self.score_vector_field(input_tensor).detach().numpy()
 
     def flow_T(self, g):
         return super().flow(g, self.final_time)
+
+
+class BatchSDE(SDE):
+    def __init__(self, bases, dt):
+        super().__init__(bases, dt)
+
+    def flow(self, g, T):
+        pass
+
+    

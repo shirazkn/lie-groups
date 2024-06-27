@@ -6,15 +6,15 @@ from torch.utils.tensorboard import SummaryWriter
 from functions import pickler, neural, so, sde, misc
 import constants
 
-NUM_EPOCHS = 4000
+NUM_EPOCHS = 10000
 DEBUGGING = False
 LOAD_MODEL = False
 LOSS_TYPES = ["ISM", "ISM_Sliced"]
-LOSS_TYPE = "ISM"
+LOSS_TYPE = "ISM_Sliced"
 
 params = {
-    "lr": 1e-3,
-    "decay": 1e-4,
+    "lr": 1e-4,
+    "decay": 1e-2,
     "lr_scheduler": 1e-3
 }
 
@@ -25,7 +25,7 @@ bases = torch.tensor(np.array(so.get_bases(3)),
 
 
 def input_from_tuple(g, t):
-    return np.concatenate([g.flatten(), np.array([100*t])])
+    return np.concatenate([g.flatten()[:6], np.array([t])])
 
 
 def differentials_from_matrices(matrices):
@@ -38,6 +38,7 @@ def differentials_from_matrices(matrices):
 
     # Concatenate the columns
     differentials = torch.cat(pushforward_bases, dim=2)
+    differentials = differentials[:,:6,:]
 
     if DEBUGGING:
         # Set DEBUGGING = True to verify what this function does
@@ -61,44 +62,46 @@ def pre_processor(training_samples, device):
     
     inputs = torch.tensor(np.array(inputs), dtype=dtype, device=device)
     matrices = torch.tensor(np.array(matrices), dtype=dtype, device=device)
+    print(f"Prepared {len(inputs)} samples.")
 
     return inputs, differentials_from_matrices(matrices)
 
 
 def ism_loss(outputs, inputs, differentials):
-    norm_term = 0.5*misc.inner_sum(outputs, outputs)/inputs.size()[0]
+    times = inputs[:,-1]
+    norm_term = 0.5*misc.inner(outputs, outputs)/times
 
-    divergence_term = torch.tensor(0.0, dtype=dtype, device=device)
+    divergence_term = torch.zeros_like(norm_term)
     for i in range(3):
         component = outputs[:,i].sum()
         #  [[0.3, 0.5, 0.1], [0.32, 0.5, 0.11], [0.2, ... ], ...]
         # component_i = 0.3 + 0.32 + 0.2 + ... = 100.00
-        gradients = torch.autograd.grad(component, inputs, create_graph=True)[0][:,:9]
+        gradients = torch.autograd.grad(component, inputs, create_graph=True)[0][:,:-1]
         # gradients_i = [0.01, 0.04, 0.008, ...]
-        divergence_term = divergence_term + misc.inner_sum(gradients, 
-                                                           differentials[:,:,i].squeeze())
+        divergence_term = divergence_term + misc.inner(gradients, 
+                                                       differentials[:,:,i].squeeze())
 
-    divergence_term = divergence_term/inputs.size()[0]
-    return norm_term, divergence_term
+    divergence_term = divergence_term/times
+    return norm_term.mean(), divergence_term.mean()
 
 
 def ism_loss_sliced(outputs, inputs, differentials):
-    norm_term = 0.5*misc.inner(outputs, outputs)
+    times = inputs[:,-1]
+    norm_term = 0.5*misc.inner(outputs, outputs)/times
 
     vectors = torch.randn_like(outputs, dtype=dtype, device=device)
     vectors = misc.normalize(vectors)
 
     weighted_sums = misc.inner_sum(vectors, outputs)
-    vjp = torch.autograd.grad(weighted_sums, inputs, create_graph=True, retain_graph=True)[0][:,:9]
+    vjp = torch.autograd.grad(weighted_sums, inputs, create_graph=True, retain_graph=True)[0][:,:6]
     
     pushforwards = torch.einsum('ijk,ik->ij', differentials, vectors)
-    divergence_term = misc.inner(vjp, pushforwards)
+    divergence_term = misc.inner(vjp, pushforwards)/times
 
     return norm_term.mean(), divergence_term.mean()
 
 
 if __name__ == "__main__":
-
     scoreNetwork = neural.Feedforward(*constants.feedforward_signature, 
                                       device=device)
 
@@ -112,7 +115,8 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(
         f"{constants.summary_directory}/{misc.get_datetime_string()}")
-    writer.add_graph(scoreNetwork, torch.randn(1, 10, device=device))
+    
+    writer.add_graph(scoreNetwork, torch.randn(1, 7, device=device, dtype=dtype))
 
     training_samples = pickler.read_all(constants.diffused_samples_filename)
     inputs, differentials = pre_processor(training_samples, device)
@@ -145,9 +149,9 @@ if __name__ == "__main__":
         losses["divergence"].append(loss_term_2.detach().cpu().numpy())
         learning_rates.append(scheduler.get_last_lr()[-1])
         
-        if losses["divergence"][-1] < -3.0:
-            import pdb; pdb.set_trace()
-            
+        # if losses["divergence"][-1] < -3.0:
+        #     import pdb; pdb.set_trace()
+
         optimizer.zero_grad()
         loss.backward()
         # torch.nn.utils.clip_grad_norm_(scoreNetwork.parameters(), 10.0)

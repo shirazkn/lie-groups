@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from matplotlib import pyplot as plt
 
-PLOT_DISTRIBUTIONS = True  # Otherwise, plot the vector field of the score network
+PLOT_DISTRIBUTIONS = False  # Otherwise, plot the vector field of the score network
 SHOW_SCATTERPLOT = True
 
 # TODO: Fix the visualization
@@ -28,20 +28,20 @@ def get_rotation_matrix(phi, theta):
     return np.array(columns).T
 
 
-def get_gradients(X, Y, scoreNetwork, t):
-    U = np.zeros_like(X)
-    V = np.zeros_like(Y)
-    for i in range(X.shape[0]):
-        for j in range(X.shape[1]):
-            g = get_rotation_matrix(X[i, j], Y[i, j])
+def get_gradients(phi_grid, theta_grid, scoreNetwork, t):
+    U = np.zeros_like(phi_grid)
+    V = np.zeros_like(theta_grid)
+    for i in range(phi_grid.shape[0]):
+        for j in range(phi_grid.shape[1]):
+            g = get_rotation_matrix(phi_grid[i, j], theta_grid[i, j])
             input_vector = learning.input_from_tuple(g, t)
-            input_tensor = torch.tensor(input_vector, dtype=torch.float32)
-            gradient = scoreNetwork(input_tensor).detach().numpy()
-            g_plus = g @ so.hat(so.hat(gradient)*0.01)
+            input_tensor = torch.tensor(input_vector, dtype=constants.datatype)
+            score_vector = scoreNetwork(input_tensor).detach().numpy()
+            g_plus = g @ so.hat(so.hat(score_vector)*0.01)
 
             new_coords = misc.polar_from_cart(g_plus[0, 0], g_plus[1, 0], g_plus[2, 0])
-            U[i, j] = new_coords[1] - X[i, j]
-            V[i, j] = new_coords[2] - Y[i, j]  
+            U[i, j] = new_coords[1] - phi_grid[i, j]
+            V[i, j] = new_coords[2] - theta_grid[i, j]  
     return U, V
 
 
@@ -76,8 +76,8 @@ if __name__ == "__main__":
 
         def add_figure(time):
             plt.figure(f"Quiver at t = {time} ")
-            U_grid, V_grid = get_gradients(X_grid, Y_grid, 
-                                        scoreNetwork=scoreNetwork, t=time)
+            U_grid, V_grid = get_gradients(X_grid, Y_grid,
+                                           scoreNetwork=scoreNetwork, t=time)
             plt.quiver(X_grid, Y_grid, U_grid, V_grid)
 
         for time in [2.0, 1.0, 0.25]:

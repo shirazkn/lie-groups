@@ -12,14 +12,16 @@ class Feedforward(nn.Module):
 
         ActivationLayer = nn.Tanh
         
-        layers_list = [nn.Linear(input_dim, hidden_dim, device=device),
+        layers_list = [nn.Linear(input_dim, hidden_dim, 
+                                 device=device, dtype=datatype),
                                  ActivationLayer()]
         for _ in range(depth):
                     layers_list.append(nn.Linear(hidden_dim, hidden_dim,
-                                                 device=device))
+                                                 device=device, dtype=datatype))
                     layers_list.append(ActivationLayer())
 
-        layers_list.append(nn.Linear(hidden_dim, output_dim, device=device))
+        layers_list.append(nn.Linear(hidden_dim, output_dim, 
+                                     device=device, dtype=datatype))
         self.layers = nn.Sequential(*layers_list)
 
     def forward(self, x):
