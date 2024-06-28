@@ -38,7 +38,7 @@ if __name__ == "__main__":
     diffused_samples = []
     for i in tqdm(range(constants.n_samples), desc=f"Diffusing samples"):
         for _ in range(num_repetitions):
-            t = np.random.uniform(0.05, T)
+            t = np.random.uniform(0.0025, T)
             diffused_samples.append((sde_solver.flow(samples[i], t), t))
             
     pickler.add_item(constants.diffused_samples_filename, diffused_samples)

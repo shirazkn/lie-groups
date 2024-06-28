@@ -6,16 +6,17 @@ from torch.utils.tensorboard import SummaryWriter
 from functions import pickler, neural, so, sde, misc
 import constants
 
-NUM_EPOCHS = 10000
+NUM_EPOCHS = 1000
+LOAD_MODEL = True
+
 DEBUGGING = False
-LOAD_MODEL = False
 LOSS_TYPES = ["ISM", "ISM_Sliced"]
-LOSS_TYPE = "ISM_Sliced"
+LOSS_TYPE = "ISM"
 
 params = {
-    "lr": 1e-4,
+    "lr": 1e-5,
     "decay": 1e-2,
-    "lr_scheduler": 1e-3
+    "lr_scheduler": 1e-4
 }
 
 device =  neural.get_device()
@@ -92,12 +93,11 @@ def ism_loss_sliced(outputs, inputs, differentials):
     vectors = torch.randn_like(outputs, dtype=dtype, device=device)
     vectors = misc.normalize(vectors)
 
-    weighted_sums = misc.inner_sum(vectors, outputs)
-    vjp = torch.autograd.grad(weighted_sums, inputs, create_graph=True, retain_graph=True)[0][:,:6]
+    weighted_sum = misc.inner_sum(vectors, outputs)
+    vjp = torch.autograd.grad(weighted_sum, inputs, create_graph=True, retain_graph=True)[0][:,:6]
     
     pushforwards = torch.einsum('ijk,ik->ij', differentials, vectors)
     divergence_term = misc.inner(vjp, pushforwards)/times
-
     return norm_term.mean(), divergence_term.mean()
 
 

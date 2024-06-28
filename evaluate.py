@@ -5,7 +5,7 @@ import torch
 from functions import neural, sde, so, pickler
 import constants
 
-n_samples = 100
+n_samples = 60
 SHOW_SCATTERPLOT = False
 
 

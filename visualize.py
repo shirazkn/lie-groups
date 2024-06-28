@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from matplotlib import pyplot as plt
 
-PLOT_DISTRIBUTIONS = False  # Otherwise, plot the vector field of the score network
+PLOT_DISTRIBUTIONS = True  # Otherwise, plot the vector field of the score network
 SHOW_SCATTERPLOT = True
 
 # TODO: Fix the visualization
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
         training_dataset = pickler.read_all(constants.diffused_samples_filename)
         diffused_samples = []
-        large_time = 0.8*constants.simulation["final_time"]
+        large_time = 0.95*constants.simulation["final_time"]
         for g, t in training_dataset:
             if t > large_time:
                 diffused_samples.append(g)
