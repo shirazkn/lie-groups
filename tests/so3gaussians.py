@@ -4,9 +4,9 @@ https://colab.research.google.com/github/blt2114/SO3_diffusion_example/blob/main
 """
 
 import add_to_path
-
 import torch
-torch.multiprocessing.set_start_method("spawn")
+
+# torch.multiprocessing.set_start_method("spawn")
 from functions import neural, so3, misc
 
 import numpy as np
@@ -15,6 +15,11 @@ import os
 np.random.seed(42)
 
 import matplotlib.pyplot as plt
+
+
+### Simulate the geodesic random walk
+n_samples = 10000  # Number of samples
+T = 5  # Final time 
 
 
 # Evaluates the isotropic Gaussian density on SO(3) defined w.r.t. the Haar measure; this is the true heat kernel
@@ -57,22 +62,17 @@ def geodesic_random_walk(R_initial, drift, times):
         rotations[times[i]] = so3.exp_g(rotations[times[i-1]], 
             drift(rotations[times[i-1]], times[i-1]) * dt 
             + random_tangent_at(rotations[times[i-1]]) * np.sqrt(abs(dt)))
-        # import pdb; pdb.set_trace()
-        print(i)
              
     return rotations
 
 
-### Simulate the geodesic random walk
-n_samples = 100  # Number of samples
-T = 2  # Final time 
 times = np.linspace(0, T, 500)  # Discretization of [0, T]
 random_walk = geodesic_random_walk(
     R_initial=lambda: so3.exp(torch.zeros(n_samples, 3, 3)), 
     drift=lambda Rt_tensor, t_tensor: 0., 
     times=times)
 
-t_idcs_plot = [5, 25, 100, -1]
+t_idcs_plot = [10, 50, 100, -1]
 _, axs = plt.subplots(1, len(t_idcs_plot), dpi=100, 
                       figsize=(3*len(t_idcs_plot), 3))
 

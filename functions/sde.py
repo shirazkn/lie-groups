@@ -17,12 +17,14 @@ class SDE:
                             self.group.hat(torch.randn(g.shape[0], self.dim)))
     
     # # Simluation procedure for forward and reverse
-    def simulate(self, g, final_time):
+    def simulate(self, g, final_time, debug=False):
         t = 0.0
         while t < final_time: # negative for reverse process
+            if debug:
+                assert torch.all(torch.isfinite(g))
+
             g = self.group.exp_g(g, 
-                                 self.drift(g, t) * self.dt
-                                 + self.random_tangent_at(g) 
+                                 self.random_tangent_at(g) 
                                  * sqrt(abs(self.dt)))
             t += self.dt
 
