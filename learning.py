@@ -6,18 +6,10 @@ from torch.utils.tensorboard import SummaryWriter
 from functions import pickler, neural, so, sde, misc
 import constants
 
-NUM_EPOCHS = 1000
+NUM_EPOCHS = 50
 LOAD_MODEL = True
 
 DEBUGGING = False
-LOSS_TYPES = ["ISM", "ISM_Sliced"]
-LOSS_TYPE = "ISM"
-
-params = {
-    "lr": 1e-5,
-    "decay": 1e-2,
-    "lr_scheduler": 1e-4
-}
 
 device =  neural.get_device()
 dtype = constants.datatype
@@ -25,70 +17,57 @@ bases = torch.tensor(np.array(so.get_bases(3)),
                      dtype=dtype, device=device)
 
 
-def input_from_tuple(g, t):
-    return np.concatenate([g.flatten()[:6], np.array([t])])
+def immersion(g):
+    return g.view(g.size()[0], -1)[:, :6]
 
 
-def differentials_from_matrices(matrices):
-    pushforward_bases = []
+def concatenate_input(g, t):
+    return torch.concatenate([immersion(g), 
+                              torch.unsqueeze(t, dim=1)], dim=1)
+
+def diffuse(dataset, sde):
+    diffused_samples = []
+    times = []
+    for sample in dataset:
+        t = np.random.uniform()
+        diffused_samples.append(sde.flow(sample, t))
+        times.append(t)
+
+    return (torch.tensor(np.array(diffused_samples), dtype=dtype, device=device), torch.tensor(times, dtype=dtype, device=device))
+
+
+
+def differentials_from_matrices(g):
+    pushforward_basis = []
     for i in range(3):
-        tangent_vector = torch.matmul(matrices, bases[i])
-        pushforward_vector = tangent_vector.view(matrices.size()[0], 9)
+        tangent_vector = torch.matmul(g, bases[i])
+        # Being a linear map, immersion(.) is also its differential
+        pushforward_vector = immersion(tangent_vector)
         # Transpose all vectors
-        pushforward_bases.append(torch.unsqueeze(pushforward_vector, 2))  
+        pushforward_basis.append(torch.unsqueeze(pushforward_vector, 2))
 
-    # Concatenate the columns
-    differentials = torch.cat(pushforward_bases, dim=2)
-    differentials = differentials[:,:6,:]
-
-    if DEBUGGING:
-        # Set DEBUGGING = True to verify what this function does
-        # Use `quit()` to exit the debugger
-        _ind = np.random.randint(0, len(matrices))
-        print(f"Matrix: {matrices[_ind]}\n")
-        for i in range(3):
-            print(f"Matrix @ E_{i}:\n {matrices[_ind] @ bases[i]}\n")
-        print(f"Differential/Jacobian Matrix: {differentials[_ind]}") 
-        import pdb; pdb.set_trace()
-
+    differentials = torch.cat(pushforward_basis, dim=2)
     return differentials
 
 
-def pre_processor(training_samples, device):
-    inputs = []
-    matrices = []
-    for g, t in training_samples:
-        inputs.append(input_from_tuple(g, t))
-        matrices.append(g)
-    
-    inputs = torch.tensor(np.array(inputs), dtype=dtype, device=device)
-    matrices = torch.tensor(np.array(matrices), dtype=dtype, device=device)
-    print(f"Prepared {len(inputs)} samples.")
-
-    return inputs, differentials_from_matrices(matrices)
-
-
 def ism_loss(outputs, inputs, differentials):
-    times = inputs[:,-1]
-    norm_term = 0.5*misc.inner(outputs, outputs)/times
+    norm_term = 0.5*misc.inner(outputs, outputs)
 
     divergence_term = torch.zeros_like(norm_term)
     for i in range(3):
         component = outputs[:,i].sum()
-        #  [[0.3, 0.5, 0.1], [0.32, 0.5, 0.11], [0.2, ... ], ...]
-        # component_i = 0.3 + 0.32 + 0.2 + ... = 100.00
+        # Taking the gradient will 'split' this sum up due to each term depending on a different input
         gradients = torch.autograd.grad(component, inputs, create_graph=True)[0][:,:-1]
         # gradients_i = [0.01, 0.04, 0.008, ...]
         divergence_term = divergence_term + misc.inner(gradients, 
                                                        differentials[:,:,i].squeeze())
 
-    divergence_term = divergence_term/times
+    divergence_term = divergence_term
     return norm_term.mean(), divergence_term.mean()
 
 
 def ism_loss_sliced(outputs, inputs, differentials):
-    times = inputs[:,-1]
-    norm_term = 0.5*misc.inner(outputs, outputs)/times
+    norm_term = 0.5*misc.inner(outputs, outputs)
 
     vectors = torch.randn_like(outputs, dtype=dtype, device=device)
     vectors = misc.normalize(vectors)
@@ -97,7 +76,7 @@ def ism_loss_sliced(outputs, inputs, differentials):
     vjp = torch.autograd.grad(weighted_sum, inputs, create_graph=True, retain_graph=True)[0][:,:6]
     
     pushforwards = torch.einsum('ijk,ik->ij', differentials, vectors)
-    divergence_term = misc.inner(vjp, pushforwards)/times
+    divergence_term = misc.inner(vjp, pushforwards)
     return norm_term.mean(), divergence_term.mean()
 
 
@@ -118,26 +97,31 @@ if __name__ == "__main__":
     
     writer.add_graph(scoreNetwork, torch.randn(1, 7, device=device, dtype=dtype))
 
-    training_samples = pickler.read_all(constants.diffused_samples_filename)
-    inputs, differentials = pre_processor(training_samples, device)
+    dataset = pickler.read_all(constants.samples_filename)
 
     scoreNetwork.train()
-    optimizer = torch.optim.Adam(scoreNetwork.parameters(), lr=params["lr"], weight_decay = params["decay"])
+    optimizer = torch.optim.Adam(scoreNetwork.parameters(), lr=constants.params["lr"], weight_decay = constants.params["decay"])
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 
-                                                       gamma=(1-params["lr_scheduler"]))
+                                                       gamma=(1-constants.params["lr_scheduler"]))
 
-    if LOSS_TYPE == "ISM":
+    if constants.params["loss_type"] == "ISM":
         loss_fn = ism_loss
 
-    elif LOSS_TYPE == "ISM_Sliced":
+    elif constants.params["loss_type"] == "ISM_Sliced":
         loss_fn = ism_loss_sliced
-    print(f"Loss function: {LOSS_TYPE}")
+
+    print(f"Loss function: {constants.params['loss_type']}")
     losses = {"total": [], "norm": [], "divergence": []}
     learning_rates = []
+    diffuser = sde.SDE(bases=so.get_bases(dim=3), dt=constants.params["sde_dt"])
     for epoch in tqdm(range(1, NUM_EPOCHS+1), desc="Training"):
+        g, t = diffuse(dataset, diffuser)
+        inputs = concatenate_input(g, t)
+        differentials = differentials_from_matrices(g)
+        
         inputs.requires_grad = True
-        ouputs = scoreNetwork(inputs)
-        loss_term_1, loss_term_2 = loss_fn(ouputs, inputs, differentials)
+        outputs = scoreNetwork(inputs)
+        loss_term_1, loss_term_2 = loss_fn(outputs, inputs, differentials)
         loss = loss_term_1 + loss_term_2
         inputs.requires_grad = False
 

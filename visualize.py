@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from matplotlib import pyplot as plt
 
-PLOT_DISTRIBUTIONS = True  # Otherwise, plot the vector field of the score network
+PLOT_DISTRIBUTIONS = False  # Otherwise, plot the vector field of the score network
 SHOW_SCATTERPLOT = True
 
 # TODO: Fix the visualization
@@ -52,7 +52,8 @@ if __name__ == "__main__":
         plt.figure("Target pdf")
         so.sliceVisualization(samples, show=False, scatter=SHOW_SCATTERPLOT)
 
-        training_dataset = pickler.read_all(constants.diffused_samples_filename)
+        training_dataset = None
+        raise NotImplementedError
         diffused_samples = []
         large_time = 0.95*constants.simulation["final_time"]
         for g, t in training_dataset:

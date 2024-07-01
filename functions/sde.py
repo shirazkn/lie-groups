@@ -17,7 +17,8 @@ class SDE():
         t = 0.0
         dX = np.zeros([g.shape[0], g.shape[0]])
         while t < T:
-            dx = self.get_velocity(g, t) * self.dt + np.random.multivariate_normal(np.zeros(self.dim), np.eye(self.dim) * self.dt)
+            dx = self.get_velocity(g, t) * self.dt 
+            + self.standard_deviation(t) * np.sqrt(self.dt) * standard_normal(self.dim)
             
             dX[:] = 0.0
             for dx_i, base_i in zip(dx, self.bases):
@@ -31,28 +32,35 @@ class SDE():
     def get_velocity(self, g, t):
         return np.zeros(self.dim)
     
+    @staticmethod
+    def standard_deviation(t):
+        return linear_schedule(t)
+    
 
 class ScoreSDE(SDE):
     def __init__(self, bases, dt, score_vector_field = None):
         super().__init__(bases, dt)
         self.score_vector_field = score_vector_field
-        self.final_time = constants.simulation["final_time"]
 
 
     def get_velocity(self, g, t):
-        input_vector = learning.input_from_tuple(g, self.final_time - t)
-        input_tensor = torch.tensor(input_vector, dtype=constants.datatype)
-        return self.score_vector_field(input_tensor).detach().numpy()
-
-    def flow_T(self, g):
-        return super().flow(g, self.final_time)
-
-
-class BatchSDE(SDE):
-    def __init__(self, bases, dt):
-        super().__init__(bases, dt)
-
-    def flow(self, g, T):
-        pass
-
+        input = learning.concatenate_input(torch.tensor([g]), 
+                                           torch.tensor([1. - t]))
+        return self.score_vector_field(input.to(dtype=constants.datatype)).detach().numpy() * self.standard_deviation(t)**2
     
+
+    @staticmethod
+    def standard_deviation(t):
+        return linear_schedule(1. - t)
+
+
+def standard_normal(dim):
+    return np.random.multivariate_normal(np.zeros(dim), np.eye(dim))
+
+
+def linear(a, b, t):
+    return (b-a)*t + a
+
+
+def linear_schedule(t):
+    return linear(0.01, 10., t)

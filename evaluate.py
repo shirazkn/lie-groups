@@ -17,11 +17,11 @@ if __name__ == "__main__":
     initial_values = so.uniformSO3(size = n_samples)
 
     reverseSDE = sde.ScoreSDE(bases=so.get_bases(3), 
-                              dt=constants.simulation["sde_dt"], score_vector_field=scoreNetwork)
+                              dt=constants.params["sde_dt"], score_vector_field=scoreNetwork)
 
     final_values = []
     for initial_value in tqdm(initial_values):
-        final_value = reverseSDE.flow_T(initial_value)
+        final_value = reverseSDE.flow(initial_value, 1.)
         final_values.append(final_value)
     
     plt.figure("Target pdf vs. Sampled pdf")
