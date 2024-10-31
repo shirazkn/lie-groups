@@ -1,4 +1,3 @@
-# from mayavi import mlab
 import numpy as np
 import torch
 import se3
@@ -7,39 +6,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
-# def m_show_frame(g):
-#     """
-#     Visualize an SE(3) frame using Mayavi.
-#     """
-#     # Extract the rotation matrix and translation vector
-#     R = g[:3, :3]
-#     t = g[:3, 3]
-
-#     # Define the axes of the frame
-#     x_axis = torch.tensor([1., 0., 0.])
-#     y_axis = torch.tensor([0., 1., 0.])
-#     z_axis = torch.tensor([0., 0., 1.])
-#     x_transformed = R @ x_axis
-#     y_transformed = R @ y_axis
-#     z_transformed = R @ z_axis
-
-#     # Plot the translation
-#     mlab.points3d(t[0].item(), t[1].item(), t[2].item(), color=(1, 1, 1), scale_factor=0.01)
-
-#     # Plot the frame
-#     mlab.quiver3d(t[0].item(), t[1].item(), t[2].item(), x_transformed[0].item(), x_transformed[1].item(), x_transformed[2].item(), color=(1, 0, 0), scale_factor=0.1)
-#     mlab.quiver3d(t[0].item(), t[1].item(), t[2].item(), y_transformed[0].item(), y_transformed[1].item(), y_transformed[2].item(), color=(0, 1, 0), scale_factor=0.1)
-#     mlab.quiver3d(t[0].item(), t[1].item(), t[2].item(), z_transformed[0].item(), z_transformed[1].item(), z_transformed[2].item(), color=(0, 0, 1), scale_factor=0.1)
-
-#     mlab.show()
-
-
 def add_frame(g, ax=None, alpha=1.0, color='k'):
     """
     Visualize an SE(3) frame with an option to set the opacity and color.
     """
     import matplotlib.pyplot as plt
-    # Extract the rotation matrix and translation vector
     R = g[:3, :3]
     t = g[:3, 3]
 
@@ -58,6 +29,7 @@ def add_frame(g, ax=None, alpha=1.0, color='k'):
 
     ax.scatter(t[0].item(), t[1].item(), t[2].item(), color=color, s=10, alpha=alpha, zorder=150)
 
+    # Draw arrows
     ax.quiver(t[0].item(), t[1].item(), t[2].item(), x_transformed[0].item(), x_transformed[1].item(), x_transformed[2].item(), color=color, alpha=alpha, linewidth=0.8, zorder=150)
     ax.quiver(t[0].item(), t[1].item(), t[2].item(), y_transformed[0].item(), y_transformed[1].item(), y_transformed[2].item(), color=color, alpha=alpha, linewidth=0.8, zorder=150)
     ax.quiver(t[0].item(), t[1].item(), t[2].item(), z_transformed[0].item(), z_transformed[1].item(), z_transformed[2].item(), color=color, alpha=alpha, linewidth=0.8, zorder=150)
@@ -105,7 +77,6 @@ def set_limits(ax, lim):
     ax.set_ylim([-lim, lim])
     ax.set_zlim([-lim, lim])
 
-    # Disable the grid, axes, and labels
     ax.grid(False)
     ax.set_axis_off()
 
@@ -126,10 +97,8 @@ def set_limits(ax, lim):
     ax.plot([-lim, lim], [0, 0], [0, 0], color='gray', alpha=0.1, linewidth=0.35, zorder=15)
 
     # Adjust the view so that the x and y axes are going from left to right
-    # ax.view_init(elev=11, azim=60)
     ax.view_init(elev=15, azim=42)
     
-
     return ax
 
 

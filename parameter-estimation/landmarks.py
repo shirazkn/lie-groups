@@ -189,8 +189,8 @@ def add_circle(axis, radius=1.0):
         else:
             circle_points_below.append((0, y, z))
     
-    circle_points_above = torch.tensor(circle_points_above).t()  # Transpose to match the expected shape
-    circle_points_below = torch.tensor(circle_points_below).t()  # Transpose to match the expected shape
+    circle_points_above = torch.tensor(circle_points_above).t()
+    circle_points_below = torch.tensor(circle_points_below).t()
     
     axis.plot(circle_points_above[0], circle_points_above[1], 
               circle_points_above[2], linestyle=(0, (5.5, 6)), 
@@ -271,7 +271,7 @@ if __name__ == '__main__':
 
         visualize.set_limits(axis, 2.0)
         axis.set_proj_type('persp')
-        axis.set_box_aspect([1,1,1])  # Equal aspect ratio
+        axis.set_box_aspect([1,1,1])
 
     if SIMULATION_TYPE == 1:
         use_CORRECTION = True
@@ -279,8 +279,6 @@ if __name__ == '__main__':
 
         use_SCALING = False
         true_pose = se3.exp_map(torch.tensor([0., 0., 0., 0., 0., 2.0]))
-        # init_est = se3.exp_map(
-            # torch.tensor([-1., 0., 2.5, 0.5, 1.5, 1.4]))
         final_errors = []
         final_errors_full = []
         correction_factors = []
@@ -299,7 +297,6 @@ if __name__ == '__main__':
                             for a in landmarks]
                     sim = simulate(5, 
                                    true_pose @ se3.standard_gaussian(1.0), x_avg, use_FIM=True)
-                    # sim = simulate(5, init_est.clone(), x_avg, use_FIM=True)
 
                     final_error[iter] = squared_error(true_pose, sim[-1], m_basis)
                     final_error_full[iter] = squared_error(true_pose, sim[-1], full_basis)
@@ -372,7 +369,6 @@ if __name__ == '__main__':
         plt.xlim(m_array[0], m_array[-1])
         plt.xscale('log')
         plt.yscale('log')
-        # plt.ylim(1.85, 2.0)
         plt.tight_layout(rect=[0.01, 0, 1., 1])
         plt.legend(handletextpad=0.2, borderaxespad=0.15, labelspacing=0.15, fancybox=True, loc='lower left')
 
@@ -381,8 +377,7 @@ if __name__ == '__main__':
         initial_estimate = se3.exp_map(torch.zeros(6))
         m_list = [2, 4, 8]
         seed = torch.randint(0, 500, (1,))
-        seed = 230
-        # seed = 39 and 230 are good. 53 is good
+        # seed = 39, 53, and 230 are interesting.
         torch.manual_seed(seed)
         print(f"Seed: {seed}")
         colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # Blue, Orange, Green, Red
@@ -398,35 +393,19 @@ if __name__ == '__main__':
                            use_FIM=True, step_size=1.0, step_size_decay=1.0)
             sim_GA = simulate(num_iter, initial_estimate.clone(), x_avg,   use_FIM=False, step_size=0.5, step_size_decay=0.9)
             
-            # errors = squared_errors(true_pose, sim, m_basis, show=False)
-            # errors_GA = squared_errors(true_pose, sim_GA, m_basis, show=False)
-            # plt.plot(range(num_iter+1), errors, linestyle='-', 
-            #          marker='o', markersize=2.5, linewidth=1., 
-            #          label=r'$' + f'm={m}' + r'$', color=color)
-            # plt.plot(range(num_iter+1), errors_GA, linestyle='dotted', 
-            #          marker='.', markersize=1.5, linewidth=1., color=color)
-            # plt.ylabel(r"Squared Error")
-            # plt.ylim(0, 5.0)
-            
             lls = likelihoods(x_list, sim)
             lls_GA = likelihoods(x_list, sim_GA)
             plt.plot(range(num_iter+1), lls, linestyle='-', 
                      marker='o', markersize=2.5, linewidth=1., 
                      label=r'$' + f'm={m}' + r'$', color=color)
             plt.plot(range(num_iter+1), lls_GA, linestyle='dotted', linewidth=0.9, color=color)
-                    #  marker='.', markersize=1.5, linewidth=1., color=color)
             plt.ylabel(r"Log-Likelihood")
-            # plt.yscale('log')
 
         # Add a second legend
         legend_elements = [
             Line2D([0], [0], color='gray', linestyle='-', label='Fisher Scoring', linewidth=1., marker='o', markersize=2.5),
             Line2D([0], [0], color='gray', linestyle='dotted', label='Gradient Ascent', linewidth=1.)
         ]
-        # first_legend = plt.legend(handletextpad=0.4, borderaxespad=0.2, labelspacing=0.2, loc='lower right', bbox_to_anchor=(1, 0.215),framealpha=0.95)
-        # plt.gca().add_artist(first_legend)
-        
-        # plt.legend(handles=legend_elements, loc='upper right', handletextpad=0.4, borderaxespad=0.2, labelspacing=0.2, bbox_to_anchor=(1, 1.0), framealpha=0.95)
         first_legend = plt.legend(handletextpad=0.4, borderaxespad=0.15, labelspacing=0.2, loc='lower right', bbox_to_anchor=(1, 0.315),framealpha=0.95)
         plt.gca().add_artist(first_legend)
         
