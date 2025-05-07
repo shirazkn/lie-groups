@@ -28,6 +28,7 @@ SIMULATION_TYPES = {0: "multiple_start",
                     3: "ad-invariance"
                     }
 
+LOAD_NAME = 'simulation_data_100000.pkl'
 parser = argparse.ArgumentParser(
     description='Run landmark parameter estimation simulations.')
 parser.add_argument('-s', '--simulation_type', 
@@ -334,7 +335,7 @@ if __name__ == '__main__':
                 pickle.dump(data, f)
                 
         elif LOAD_DATA:
-            with open('simulation_data.pkl', 'rb') as f:
+            with open(LOAD_NAME, 'rb') as f:
                 data = pickle.load(f)
                 m_array = data['m_array']
                 final_errors = data['final_errors']
@@ -345,7 +346,7 @@ if __name__ == '__main__':
 
                 print(f"Loaded data for {len(m_array)} measurements, {n_MC} Monte Carlo runs.")
 
-        fig = plt.figure(figsize=(4, 2))
+        fig = plt.figure(figsize=(4, 1.8))
         plt.plot(m_array, final_errors_full, '^-', markersize=3.5,
              color='#66BCCD', label='Variance on ' + r'$G$', linewidth=1.)
         plt.plot(m_array, final_errors, 'o-', markersize=3.5,
@@ -367,16 +368,21 @@ if __name__ == '__main__':
         plt.rcParams['patch.linewidth'] = 0.7
         
         plt.xlim(m_array[0], m_array[-1])
+        
         plt.xscale('log')
         plt.yscale('log')
+        # plt.xticks(m_array[0:1] + m_array[2:])
+        # plt.ylim(0, 0.3)
+
         plt.tight_layout(rect=[0.01, 0, 1., 1])
         plt.legend(handletextpad=0.2, borderaxespad=0.15, labelspacing=0.15, fancybox=True, loc='lower left')
 
     if SIMULATION_TYPE == 2:
-        fig = plt.figure(figsize=(4, 2))
+        fig = plt.figure(figsize=(4, 1.8))
         initial_estimate = se3.exp_map(torch.zeros(6))
         m_list = [2, 4, 8]
         seed = torch.randint(0, 500, (1,))
+        seed = 230
         # seed = 39, 53, and 230 are interesting.
         torch.manual_seed(seed)
         print(f"Seed: {seed}")
@@ -406,7 +412,7 @@ if __name__ == '__main__':
             Line2D([0], [0], color='gray', linestyle='-', label='Fisher Scoring', linewidth=1., marker='o', markersize=2.5),
             Line2D([0], [0], color='gray', linestyle='dotted', label='Gradient Ascent', linewidth=1.)
         ]
-        first_legend = plt.legend(handletextpad=0.4, borderaxespad=0.15, labelspacing=0.2, loc='lower right', bbox_to_anchor=(1, 0.315),framealpha=0.95)
+        first_legend = plt.legend(handletextpad=0.4, borderaxespad=0.15, labelspacing=0.2, loc='lower right', bbox_to_anchor=(1, 0.375),framealpha=0.95)
         plt.gca().add_artist(first_legend)
         
         second_legend = plt.legend(handles=legend_elements, loc='lower right', handletextpad=0.4, borderaxespad=0.15, labelspacing=0.2, framealpha=0.95)

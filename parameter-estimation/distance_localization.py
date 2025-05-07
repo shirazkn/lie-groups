@@ -69,8 +69,8 @@ for point in points:
 trails = [[se2.get_t(pose)] for pose in poses]
 for k in range(100):
     vel = t.zeros(3)
-    vel[0] = t.sin(t.tensor(k**1.2 * 0.005))*0.3
-    vel[1] = 1.5
+    vel[0] = t.sin(t.tensor(k**1.2 * 0.005))*0.25
+    vel[1] = 1.75
     vel[2] = -0.
     delta = se2.exp_map(vel*0.01)
     for i in range(len(poses)):
@@ -103,6 +103,6 @@ ax.set_ylabel('')
 ax.set_aspect('equal', adjustable='box')
 
 plt.savefig('images/distance_localization_green.png', dpi=700)
-import os
-os.system('images/distance_localization_green.png')
+import subprocess
+subprocess.run(['open', 'images/distance_localization_green.png'])
 # plt.show()
